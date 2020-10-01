@@ -2,6 +2,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const app = require("express")();
 const firebase = require("firebase");
+const { user } = require("firebase-functions/lib/providers/auth");
 
 var firebaseConfig = {
   apiKey: "AIzaSyA6bVMUwVZ6XjD3r-c6H-bQ98v7XOT1P_w",
@@ -16,11 +17,10 @@ var firebaseConfig = {
 
 admin.initializeApp();
 firebase.initializeApp(firebaseConfig);
+const db = admin.firestore();
 
 app.get("/screams", (req, res) => {
-  admin
-    .firestore()
-    .collection("screams")
+  db.collection("screams")
     .orderBy("createdAt", "desc")
     .get()
     .then((data) => {
@@ -67,18 +67,40 @@ app.post("/signup", (req, res) => {
   };
 
   // TODO: validate data
-
-  firebase
-    .auth()
-    .createUserWithEmailAndPassword(newUser.email, newUser.password)
+  let tk, userId;
+  db.doc(`/users/${newUser.handle}`)
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        return res.status(400).json({ handle: "this handle is already taken" });
+      } else {
+        return firebase
+          .auth()
+          .createUserWithEmailAndPassword(newUser.email, newUser.password);
+      }
+    })
     .then((data) => {
-      return res
-        .status(201)
-        .json({ message: `user ${data.user.uid} signedup successfully ` });
+      userId = data.user.uid;
+      return data.user.getIdToken();
+    })
+    .then((token) => {
+      tk = token;
+      const userCredentials = {
+        handle: newUser.handle,
+        email: newUser.email,
+        createdAt: new Date().toISOString(),
+        userId,
+      };
+      return db.doc(`/users/${newUser.handle}`).set(userCredentials);
+    })
+    .then(() => {
+      return res.status(201).json({ token: tk });
     })
     .catch((err) => {
       console.error(err);
-      return res.status(500).json({ error: err.code });
+      if (err.code === "auth/email-already-in-use") {
+        return res.status(400).json({ email: `Email is already in use` });
+      } else return res.status(400).json({ error: err.code });
     });
 });
 
