@@ -9,4 +9,15 @@ let db = {
       commentCount: 2,
     },
   ],
+  users: [
+    {
+      userId: "xxxxx",
+      email: "user@gmail.com",
+      handle: "user",
+      createdAt: "2019-03-15-T10:59:52.798Z",
+      bio: "Hello xxxx",
+      website: "https://user.com",
+      location: "London.UK",
+    },
+  ],
 };
