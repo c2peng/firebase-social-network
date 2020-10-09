@@ -8,6 +8,7 @@ const {
   commentOnScream,
   likeScream,
   unlikeScream,
+  deleteScream,
 } = require("./handlers/screams");
 const {
   signup,
@@ -22,6 +23,7 @@ const FBAuth = require("./util/fbAuth");
 app.get("/screams", getAllScreams);
 app.post("/scream", FBAuth, postOneScream);
 app.get("/scream/:screamId", getScream);
+app.delete("/scream/:screamId", FBAuth, deleteScream);
 app.post("/scream/:screamId/comment", FBAuth, commentOnScream);
 app.post("/scream/:screamId/like", FBAuth, likeScream);
 app.post("/scream/:screamId/unlike", FBAuth, unlikeScream);
