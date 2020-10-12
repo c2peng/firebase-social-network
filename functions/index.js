@@ -36,9 +36,8 @@ app.post("/user/", FBAuth, addUserDetails);
 app.get("/user", FBAuth, getAuthenticatedUser);
 
 exports.api = functions.https.onRequest(app);
-exports.createNotificationOnLike = functions
-  .region("us-east1")
-  .firestore.document("likes/{id}")
+exports.createNotificationOnLike = functions.firestore
+  .document("likes/{id}")
   .onCreate((snapshot) => {
     db.doc(`/screams/${snapshot.data().screamId}`)
       .get()
@@ -63,9 +62,8 @@ exports.createNotificationOnLike = functions
       });
   });
 
-exports.deleteNotificationOnUnlike = functions
-  .region("us-east1")
-  .firestore.document("/likes/{id}")
+exports.deleteNotificationOnUnlike = functions.firestore
+  .document("/likes/{id}")
   .onDelete((snapshot) => {
     db.doc(`/notifications/${snapshot.id}`)
       .delete()
@@ -78,19 +76,14 @@ exports.deleteNotificationOnUnlike = functions
       });
   });
 
-exports.createNotificationOnComment = functions
-  .region("us-east1")
-  .firestore.document("comments/{id}")
+exports.createNotificationOnComment = functions.firestore
+  .document("comments/{id}")
   .onCreate((snapshot) => {
-    console.log("id:" + snapshot.data().screamId);
     return db
       .doc(`/screams/${snapshot.data().screamId}`)
       .get()
       .then((doc) => {
-        if (
-          doc.exists &&
-          doc.data().userHandle !== snapshot.data().userHandle
-        ) {
+        if (doc.exists) {
           return db.doc(`/notifications/${snapshot.id}`).set({
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
@@ -100,6 +93,9 @@ exports.createNotificationOnComment = functions
             screamId: doc.id,
           });
         }
+      })
+      .then(() => {
+        return;
       })
       .catch((err) => {
         console.error(err);
