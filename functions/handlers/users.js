@@ -12,7 +12,6 @@ const {
   validateLoginData,
   reduceUserDetails,
 } = require("../util/validators");
-const { user } = require("firebase-functions/lib/providers/auth");
 
 exports.signup = (req, res) => {
   const newUser = {
@@ -62,7 +61,10 @@ exports.signup = (req, res) => {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
         return res.status(400).json({ email: `Email is already in use` });
-      } else return res.status(400).json({ error: err.code });
+      } else
+        return res
+          .status(500)
+          .json({ general: "Something went wrong, please try again" });
     });
 };
 
@@ -86,11 +88,9 @@ exports.login = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      if (err.code === "auth/wrong-password")
-        return res
-          .status(403)
-          .json({ general: "Wrong credentials, please try again" });
-      return res.status(500).json({ error: err.code });
+      return res
+        .status(403)
+        .json({ general: "Wrong credentials, please try again" });
     });
 };
 
@@ -236,6 +236,23 @@ exports.getUserDetails = (req, res) => {
       } else {
         return res.status(404).json({ error: "User not found" });
       }
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
+    });
+};
+
+exports.markNotificationsRead = (req, res) => {
+  let batch = db.batch();
+  req.body.forEach((doc) => {
+    const notification = db.doc(`/notifications/${doc}`);
+    batch.update(notification, { read: true });
+  });
+  batch
+    .commit()
+    .then(() => {
+      return res.json({ message: "Notifications marked read" });
     })
     .catch((err) => {
       console.error(err);
